@@ -1,5 +1,7 @@
 package com.sharpcrow.photomanager;
 
+import org.apache.commons.codec.digest.DigestUtils;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -7,53 +9,64 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import org.apache.commons.codec.digest.DigestUtils;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 public class FileVerifier {
 
-	public void verify(String path) throws Exception {
-		CountingFileVisitor<Path> fv = buildFileTree(path);
+    public SortedSet<FileChecksumPair> verify(String path) throws Exception {
 
-		for (Path p : fv.getFiles()) {
-			System.out.println(p);
-		}
+        long startTime = System.nanoTime();
+        CountingFileVisitor<Path> fv = buildFileTree(path);
 
-		System.out.println(fv.getFiles().size() + ", " + fv.getSize());
+        long fileNamesTime = System.nanoTime() - startTime;
+        for (Path p : fv.getFiles()) {
+            System.out.println(p);
+        }
 
-		for (Path p : fv.getFiles()) {
-			String cksum = digest(p);
+        SortedSet<FileChecksumPair> hashedFiles = new TreeSet<>(FileChecksumPair.FILE_ONLY_COMPARATOR);
+        System.out.println(fv.getFiles().size() + ", " + fv.getSize() + " in " + TimeUnit.NANOSECONDS.toMillis(fileNamesTime) + "ms");
 
-			System.out.println(p + " " + cksum);
-		}
-	}
+        for (Path p : fv.getFiles()) {
+            String cksum = digest(p);
 
-	private String digest(Path p) throws IOException {
-		String cksum = null;
+            System.out.println(p + " " + cksum);
+            hashedFiles.add(new FileChecksumPair(p.toString().substring(p.toString().indexOf(":")), cksum));
+        }
 
-		try (InputStream newInputStream =  new FileInputStream(p.toFile()) ) {
-			cksum = DigestUtils.md5Hex(newInputStream);
-		} catch (FileNotFoundException ex) {
-			System.err.println("Missing file " + p);
+        long cksumTime = (System.nanoTime() - startTime) - fileNamesTime;
+        System.out.println("Checksums computed in " + TimeUnit.NANOSECONDS.toMillis(cksumTime) + "ms");
 
-		}
+        return hashedFiles;
+    }
 
-		return cksum;
-	}
+    private String digest(Path p) throws IOException {
+        String cksum;
 
-	private CountingFileVisitor<Path> buildFileTree(String path)
-			throws IOException {
-		Path startingDir = Paths.get(path);
-		CountingFileVisitor<Path> fv = new CountingFileVisitor<Path>();
-		Files.walkFileTree(startingDir, fv);
+        try (InputStream newInputStream = new FileInputStream(p.toFile())) {
+            cksum = DigestUtils.md5Hex(newInputStream);
+        } catch (FileNotFoundException ex) {
+            System.err.println("Missing file " + p);
+            throw ex;
+        }
 
-		return fv;
-	}
+        return cksum;
+    }
 
-	//	verifyImage(){
-	//		BufferedImage buffImg = ImageIO.read(p.toFile());
-	//		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-	//		ImageIO.write(buffImg, "png", outputStream);
-	//	}
+    private CountingFileVisitor<Path> buildFileTree(String path)
+            throws IOException {
+        Path startingDir = Paths.get(path);
+        CountingFileVisitor<Path> fv = new CountingFileVisitor<>();
+        Files.walkFileTree(startingDir, fv);
+
+        return fv;
+    }
+
+    //	verifyImage(){
+    //		BufferedImage buffImg = ImageIO.read(p.toFile());
+    //		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    //		ImageIO.write(buffImg, "png", outputStream);
+    //	}
 
 }
