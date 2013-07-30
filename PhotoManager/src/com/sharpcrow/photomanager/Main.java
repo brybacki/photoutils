@@ -1,6 +1,9 @@
 package com.sharpcrow.photomanager;
 
 
+import com.sharpcrow.photomanager.filesync.FileChecksumPair;
+import com.sharpcrow.photomanager.filesync.FileVerifier;
+
 import java.util.Set;
 import java.util.TreeSet;
 

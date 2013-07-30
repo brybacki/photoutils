@@ -1,4 +1,4 @@
-package com.sharpcrow.photomanager;
+package com.sharpcrow.photomanager.filesync;
 
 import org.apache.commons.codec.digest.DigestUtils;
 

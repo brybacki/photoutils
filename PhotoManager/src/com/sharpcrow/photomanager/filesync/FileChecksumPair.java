@@ -1,4 +1,4 @@
-package com.sharpcrow.photomanager;
+package com.sharpcrow.photomanager.filesync;
 
 import java.util.Comparator;
 
